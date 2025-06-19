@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">PocketDex</string>
+    <string name="login">Log In</string>
+    <string name="signup">Sign Up</string>
+    <string name="profile">Profile</string>
+    <string name="home">Home</string>
+    <string name="back_button">Back Button</string>
+    <string name="search_button">Search Button</string>
+    <string name="filter_button">Filter Collection by Criteria</string>
+    <string name="TODO">TODO</string>
+    <string name="home_title">My Collection:</string>
+</resources>
