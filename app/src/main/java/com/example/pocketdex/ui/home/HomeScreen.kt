@@ -1,11 +1,14 @@
 package com.example.pocketdex.ui
 
+import android.annotation.SuppressLint
 import android.media.Image
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -15,18 +18,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key.Companion.I
@@ -35,9 +54,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import com.example.compose.PocketDexTheme
+import com.example.pocketdex.PocketDexScreen
 import com.example.pocketdex.R
+import com.example.pocketdex.ui.components.AddButton
+import com.example.pocketdex.ui.components.ListOfCardsScreen
+import com.example.pocketdex.ui.components.NavBar
+import com.example.pocketdex.ui.components.TitleRow
+import com.example.pocketdex.ui.components.TopAppBar
+import com.example.pocketdex.ui.components.Type
 import com.example.pocketdex.ui.mock_data.MockUserCards
 import com.example.pocketdex.ui.mock_data.UserCardsDataSource
 
@@ -45,113 +76,63 @@ import com.example.pocketdex.ui.mock_data.UserCardsDataSource
  * Composable for the Home Screen:
  * Screen with all cards in the users' collection
  */
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    paddingValues: PaddingValues
 ) {
     val mockUserCards = UserCardsDataSource.mockUserCards
-    Column(
+
+    ListOfCardsScreen(
         modifier = modifier
-            .padding(4.dp)
-    ) {
-        TitleRow()
-        Spacer(Modifier.height(4.dp))
-        CollectionComposable(mockUserCards)
-    }
+            .padding(paddingValues = paddingValues),
+        typeOFScreen = Type.HOME,
+        cards = mockUserCards
+    )
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-        )
-    }
-}
 
-/**
- * Composable for the title row (the row with the title and filter button)
- */
-@Composable
-fun TitleRow(
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(R.string.home_title),
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        IconButton(
-            onClick = { /* TODO */ }
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.drawable_filter_icon),
-                contentDescription = stringResource(R.string.filter_button)
-            )
-        }
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Preview(showBackground = true)
 @Composable
-fun TitleRowPreview() {
-    MaterialTheme {
-        TitleRow()
+fun HomeScreenPreview() {
+    val navController = rememberNavController()
+    val currentScreen = PocketDexScreen.HOME
+
+    PocketDexTheme {
+        Scaffold(
+            topBar = { TopAppBar(
+                currentScreen = currentScreen,
+                canNavigateBack = currentScreen.navigableBack,
+                navigateUp = {},
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+            ) },
+            bottomBar = { NavBar(navController = navController) },
+            floatingActionButton = {
+                if (currentScreen == PocketDexScreen.HOME) {
+                    AddButton()
+                }
+            }
+        ) { paddingValues ->
+            HomeScreen(
+                modifier = Modifier.fillMaxSize(),
+                paddingValues
+            )
+        }
     }
 }
 
 val mockUserCards = UserCardsDataSource.mockUserCards
 
 /**
- * Composable for collection showing a scrollable
- * grid of cards owned by the user and quantity
- */
-@Composable
-fun CollectionComposable(
-    cards: List<MockUserCards>,
-    modifier: Modifier = Modifier
-) {
-    CollectionGrid(cards, modifier)
-}
-
-/**
- * Composable for the grid for the collection:
- */
-@Composable
-fun CollectionGrid(
-    cards: List<MockUserCards>,
-    modifier: Modifier = Modifier
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier
-            .padding(8.dp)
-    ) {
-        items(cards) { userCard ->
-            UserCardCard(userCard)
-        }
-    }
-}
-
-/**
  * Composable for UserCard:
  * Shows the card image and quantity owned
  */
 @Composable
-fun UserCardCard(
+fun UserCardComposable(
     userCard: MockUserCards,
     modifier: Modifier = Modifier
 ) {
@@ -177,7 +158,7 @@ fun UserCardCard(
                     .fillMaxWidth()
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 text = "owned: ${userCard.quantity}",
@@ -191,26 +172,17 @@ fun UserCardCard(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun CollectionPreview() {
-    MaterialTheme {
-        CollectionComposable(
-            cards = mockUserCards,
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .navigationBarsPadding()
-        )
-    }
-}
+
+
 
 @Preview(showBackground = true)
 @Composable
 fun UserCardCardPreview() {
-    MaterialTheme {
-        UserCardCard(
+    PocketDexTheme {
+        UserCardComposable(
             userCard = mockUserCards.get(0)
         )
     }
 }
+
+
