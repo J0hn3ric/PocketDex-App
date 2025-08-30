@@ -4,6 +4,10 @@ import com.example.pocketdex.R
 import java.util.UUID
 
 object UserCardsDataSource {
+    val mockAvailableCardsSource = listOf(
+
+    )
+
     val mockUserCards = listOf(
         MockUserCards(
             id = "A1-1",
