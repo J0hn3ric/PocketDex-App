@@ -1,4 +1,4 @@
-package com.example.pocketdex.data
+package com.example.pocketdex.data.user_card.utils
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes

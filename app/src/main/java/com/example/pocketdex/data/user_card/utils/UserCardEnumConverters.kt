@@ -1,4 +1,4 @@
-package com.example.pocketdex.data
+package com.example.pocketdex.data.user_card.enums
 
 // Rarity Enum Converters
 fun String.toRarity(): Rarity =

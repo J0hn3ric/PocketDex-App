@@ -1,5 +1,10 @@
 package com.example.pocketdex.ui.add_cards
 
+import android.R.attr.inputType
+import android.R.attr.mode
+import android.annotation.SuppressLint
+import android.text.Layout
+import android.util.Log.e
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +33,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -36,23 +43,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.compose.PocketDexTheme
-import com.example.pocketdex.PocketDexScreen
+import com.example.pocketdex.ui.PocketDexScreen
 import com.example.pocketdex.R
-import com.example.pocketdex.ui.components.AddButton
+import com.example.pocketdex.data.card.Card
+import com.example.pocketdex.ui.AppViewModelProvider
+import com.example.pocketdex.ui.components.CustomButton
+import com.example.pocketdex.ui.components.EditButton
 import com.example.pocketdex.ui.components.ListOfCardsScreen
 import com.example.pocketdex.ui.components.NavBar
-import com.example.pocketdex.ui.components.NavBarDestination
 import com.example.pocketdex.ui.components.TopAppBar
 import com.example.pocketdex.ui.components.Type
-import com.example.pocketdex.ui.mock_data.MockUserCards
-import com.example.pocketdex.ui.mock_data.UserCardsDataSource
-import com.example.pocketdex.ui.settings.SettingsScreen
+import com.example.pocketdex.ui.mock_data.CardsDataSource
+import com.example.pocketdex.ui.mock_data.toDrawableResource
 
 enum class ButtonType {
     ADD,
@@ -60,18 +71,55 @@ enum class ButtonType {
 }
 
 @Composable
-fun AddCardScreen(
+fun EditCollectionScreen(
     modifier: Modifier,
-    paddingValues: PaddingValues
-) {
-    val mockUserCards = UserCardsDataSource.mockUserCards
-
-    ListOfCardsScreen(
-        modifier = modifier
-            .padding(paddingValues = paddingValues),
-        typeOFScreen = Type.ADD_CARDS,
-        cards = mockUserCards
+    navController: NavHostController,
+    editCollectionViewModel: EditCollectionViewModel = viewModel(
+        factory = AppViewModelProvider.Factory
     )
+) {
+    val mockCards = CardsDataSource.mockCardsSource
+    val editCollectionUiState by editCollectionViewModel.uiState.collectAsState()
+
+    Column(
+        modifier = modifier
+    ) {
+        ListOfCardsScreen(
+            modifier = Modifier
+                .weight(1f),
+            typeOfScreen = Type.ADD_CARDS,
+            isFilterDialogOpen = editCollectionUiState.isFilterDialogOpened,
+            onDismissDialog = { editCollectionViewModel.onCloseFilterDialog() },
+            onClickFilterButton = { editCollectionViewModel.onClickFilterButton() },
+            items = mockCards
+        ) { card ->
+            AddCardComposable(
+                card = card,
+                cardIdToQuantityMap = editCollectionUiState.updatedCardIdToQuantityMap,
+                onClickAddButton = { id ->
+                    editCollectionViewModel.onClickAddButton(id)
+                },
+                onClickRemoveButton = { id ->
+                    editCollectionViewModel.onClickRemoveButton(id)
+                },
+                onChangeAmountValue = { newValue, id ->
+                    editCollectionViewModel.onAmountValueChange(newValue, id)
+                }
+            )
+        }
+
+        CustomButton(
+            modifier = Modifier
+                .padding(bottom = 8.dp)
+                .align(Alignment.CenterHorizontally),
+            buttonText = R.string.done,
+            onClick = {
+                if (editCollectionUiState.mode == EditCollectionType.EDIT_COLLECTION)
+
+                navController.popBackStack()
+            }
+        )
+    }
 }
 
 
@@ -81,7 +129,11 @@ fun AddCardScreen(
 @Composable
 fun AddCardComposable(
     modifier: Modifier = Modifier,
-    card: MockUserCards
+    card: Card,
+    cardIdToQuantityMap: Map<String, Int>,
+    onClickAddButton: (String) -> Unit,
+    onClickRemoveButton: (String) -> Unit,
+    onChangeAmountValue: (String, String) -> Unit
 ) {
     Card(
         elevation = CardDefaults.cardElevation(8.dp),
@@ -96,7 +148,7 @@ fun AddCardComposable(
             modifier = modifier.align(Alignment.CenterHorizontally)
         ) {
             Image(
-                painter = painterResource(card.imgRes),
+                painter = painterResource(card.imgResUrl.toDrawableResource()),
                 contentDescription = card.id,
                 contentScale = ContentScale.Fit,
                 modifier = modifier
@@ -108,7 +160,12 @@ fun AddCardComposable(
             Spacer(Modifier.height(4.dp))
 
             AddCardButtonRow(
-                modifier = modifier.weight(3f)
+                modifier = modifier.weight(3f),
+                cardId = card.id,
+                amountValue = cardIdToQuantityMap[card.id] ?: 0,
+                onClickAddButton = onClickAddButton,
+                onClickRemoveButton = onClickRemoveButton,
+                onChangeAmountValue = onChangeAmountValue
             )
 
         }
@@ -119,10 +176,13 @@ fun AddCardComposable(
 
 @Composable
 fun AddCardButtonRow(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cardId: String,
+    amountValue: Int,
+    onClickAddButton: (String) -> Unit,
+    onClickRemoveButton: (String) -> Unit,
+    onChangeAmountValue: (String, String) -> Unit
 ) {
-    val mockValue = remember { mutableStateOf("") } // change to viewmodel
-
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -132,7 +192,7 @@ fun AddCardButtonRow(
             .fillMaxHeight()
             .weight(1f)
 
-        if (mockValue.value == "") {
+        if (amountValue == 0) {
             DisabledButton(
                 buttonType = ButtonType.REMOVE,
                 modifier = buttonModifier
@@ -141,29 +201,26 @@ fun AddCardButtonRow(
             EnabledButton(
                 buttonType = ButtonType.REMOVE,
                 modifier = buttonModifier,
-                onClick = {
-                    if (mockValue.value == "1") {
-                        mockValue.value = ""
-                    } else {
-                        mockValue.value = (mockValue.value.toInt() - 1).toString()
-                    }
-                }
+                onClick = { onClickRemoveButton(cardId) }
             )
         }
 
         BasicTextField(
-            value = mockValue.value,
-            onValueChange = { mockValue.value = it},
+            value = if (amountValue == 0) { "" } else { amountValue.toString() },
+            onValueChange = { newValue -> onChangeAmountValue(newValue, cardId) },
             singleLine = true,
             textStyle = TextStyle(
                 color = Color.Black,
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
             ),
-            modifier = Modifier.weight(2f)
+            modifier = Modifier.weight(2f),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.NumberPassword
+            )
         )
 
-        if (mockValue.value == "999") {
+        if (amountValue == 999) {
             DisabledButton(
                 buttonType = ButtonType.ADD,
                 modifier = buttonModifier
@@ -172,13 +229,7 @@ fun AddCardButtonRow(
             EnabledButton(
                 buttonType = ButtonType.ADD,
                 modifier = buttonModifier,
-                onClick = {
-                    if (mockValue.value == "") {
-                        mockValue.value = "1"
-                    } else {
-                        mockValue.value = (mockValue.value.toInt() + 1).toString()
-                    }
-                }
+                onClick = { onClickAddButton(cardId) }
             )
         }
     }
@@ -271,8 +322,9 @@ fun EnabledButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun AddCardScreenPreview() {
+fun EditCollectionScreenPreview() {
     val navController = rememberNavController()
     val currentScreen = PocketDexScreen.MANUAL_EDIT_COLLECTION
 
@@ -284,48 +336,41 @@ fun AddCardScreenPreview() {
                         currentScreen = currentScreen,
                         canNavigateBack = currentScreen.navigableBack,
                         navigateUp = {},
+                        navController = navController,
                         scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
                     )
                 }
             },
             bottomBar = {
                 if (currentScreen.hasNavBar) {
-                    NavBar(
-                        navController = navController,
-                        startDestination = NavBarDestination.HOME
-                    )
+                    NavBar(navController = navController)
                 }
             },
             floatingActionButton = {
                 if (currentScreen == PocketDexScreen.HOME) {
-                    AddButton()
+                    EditButton(navController = navController)
                 }
             }
         ) { paddingValues ->
-            AddCardScreen(
+            EditCollectionScreen(
                 modifier = Modifier.fillMaxSize(),
-                paddingValues = paddingValues
+                navController = navController
             )
         }
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
-fun AddCardComposablePreview() {
-    val mockUserCards = UserCardsDataSource.mockUserCards
+fun EditCardButtonRowPreview() {
     PocketDexTheme {
-        AddCardComposable(
-            card = mockUserCards.get(0)
+        AddCardButtonRow(
+            onClickAddButton = { },
+            onClickRemoveButton = { },
+            cardId = "A1-1",
+            amountValue = 0,
+            onChangeAmountValue = { _, _ -> }
         )
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun AddCardButtonRowPreview() {
-    PocketDexTheme {
-        AddCardButtonRow()
     }
 }
