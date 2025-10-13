@@ -1,4 +1,4 @@
 package com.example.pocketdex.data.user_card
 
-import com.example.pocketdex.data.card.Card
-
+class RemoteUserCardRepository {
+}

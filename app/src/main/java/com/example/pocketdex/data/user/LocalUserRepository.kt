@@ -1,4 +1,4 @@
-package com.example.pocketdex.data
+package com.example.pocketdex.data.user
 
 import android.util.Log
 import androidx.datastore.core.DataStore
@@ -6,15 +6,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.pocketdex.R
-import com.example.pocketdex.data.UserPreferencesRepository.Companion.TAG
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
-import java.lang.Exception
 
 class UserPreferencesRepository(
     private val dataStore: DataStore<Preferences>
@@ -43,7 +40,6 @@ class UserPreferencesRepository(
 
     suspend fun editExistingUser(
         newUsername: String = "",
-        newFriendId: String = "",
         newProfileIcon: Int? = null,
     ) {
         dataStore.edit { preferences ->
@@ -51,12 +47,18 @@ class UserPreferencesRepository(
                 preferences[USERNAME] = newUsername
             }
 
-            if (newFriendId != "") {
-                preferences[FRIEND_ID] = newFriendId
-            }
-
             if (newProfileIcon != null) {
                 preferences[PROFILE_ICON] = newProfileIcon
+            }
+        }
+    }
+
+    suspend fun updateAccessToken(
+        newAccessToken: String = ""
+    ) {
+        dataStore.edit { preferences ->
+            if (newAccessToken != "") {
+                preferences[ACCESS_TOKEN] = newAccessToken
             }
         }
     }
@@ -71,8 +73,8 @@ class UserPreferencesRepository(
             }
         }
         .map { preferences ->
-        preferences[USERNAME] ?: ""
-    }
+            preferences[USERNAME] ?: ""
+        }
 
     val friendId: Flow<String> = dataStore.data
         .catch {
@@ -84,8 +86,8 @@ class UserPreferencesRepository(
             }
         }
         .map { preferences ->
-        preferences[FRIEND_ID] ?: ""
-    }
+            preferences[FRIEND_ID] ?: ""
+        }
 
     val profileIcon: Flow<Int> = dataStore.data
         .catch {
@@ -97,8 +99,8 @@ class UserPreferencesRepository(
             }
         }
         .map { preferences ->
-        preferences[PROFILE_ICON] ?: R.drawable.baseline_person_24
-    }
+            preferences[PROFILE_ICON] ?: R.drawable.baseline_person_24
+        }
 
     val accessToken: Flow<String> = dataStore.data
         .catch {
@@ -110,7 +112,7 @@ class UserPreferencesRepository(
             }
         }
         .map { preferences ->
-        preferences[ACCESS_TOKEN] ?: ""
-    }
+            preferences[ACCESS_TOKEN] ?: ""
+        }
 
 }
